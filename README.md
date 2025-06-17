@@ -12,7 +12,7 @@ In MIWAE_Pytorch_exercises_demo_ProbAI, a base model is implemented and trained 
 
  ## 1-  Using a VAE in data space
 
-1.1- Train a VAE on MNAR data.
+- 1.1- Train a VAE on MNAR data.
 
 The objective of this hackathon is to modify the VAE using EBM to handle MNAR data.
 
@@ -47,7 +47,7 @@ where $q_{\phi}(z|x)$ is the encoder of the VAE, which we can also parameterise 
   
   
 
-1.2- First idea is just to tilt the data output with an EBM. To that end, we consider an EBM of the form:
+- 1.2- First idea is just to tilt the data output with an EBM. To that end, we consider an EBM of the form:
 
 $$p_{\theta}(x) = \frac{1}{Z_{\theta}} e^{-E_{\theta}(x)}p_{\phi(x)}$$
 
@@ -71,15 +71,23 @@ One can obtain the gradient in $\theta$ (and make the $q_{\phi}$ disappear) as f
 
   
 
-$$\nabla_{\theta} \mathcal{L}_{EBM} = \sum_{i=1}^n \frac{1}{n} \left( -\nabla_{\theta} E_{\theta}(x_i)\right) + \mathbb{E}_{p_{\phi}(\tilde{x})} \left[ -\nabla_{\theta} E_{\theta}(\tilde{x}) \right]$$.
+$$\nabla_{\theta} \mathcal{L}_{EBM} = \sum_{i=1}^n \frac{1}{n} \left( -\nabla_{\theta} E_{\theta}(x_i)\right) + \mathbb{E}_{p_{\phi}(\tilde{x})} \left[ -\nabla_{\theta} E_{\theta}(\tilde{x}) \right].$$
 
   
 
 The first term is the gradient of the energy function evaluated at the observed data, and the second term is the gradient of the energy function evaluated at samples from the VAE.
 
-  
+- 1.3 Sampling from the resulting model can be done by doing importance sampling with the VAE as proposal distribution $p_{\phi}(x)$. To that end, we can sample some samples from the VAE $x_i \sim p_{\phi}(x)$ and reweight them according to the EBM:
 
-1.3 Sampling from the resulting model can be done by sampling from the VAE and then use a MCMC chain to update the samples according to the EBM.
+$$\tilde{w}_i = e^{-E_{\theta}(x_i)}$$
+
+Since the partition function $Z_{\theta}$ is unknown, we can uses self normalised importance sampling (SNIS) to obtain the weights:
+$$w_i = \frac{\tilde{w}_i}{\sum_{j=1}^n w_j}$$
+
+Then we can sample from the weighted samples $\tilde{x}_i$ according to the weights $\tilde{w}_i$.
+
+
+- 1.4 Sampling from the resulting model can be done by sampling from the VAE and then use a MCMC chain to update the samples according to the EBM.
 
 The gradient of the full log-likelihood guides the MCMC chain:
 
@@ -98,15 +106,14 @@ where $\eta$ is the step size.
   
   
   
-  
-  
+
 
  ## 2-  Using a VAE in latent space
 
-1- First part is the same, just train the VAE.
+- 1.1- First part is the same, just train the VAE.
 
 
-1.2- Tilt the EBM in latent space :
+- 1.2- Tilt the EBM in latent space :
 
 $$p_{\theta}(x) = \int_{z} \frac{1}{Z_{\theta}} e^{-E_{\theta}(z)}p_{\phi}(x|z)p_{}(z)\mathrm{d}z$$
 
@@ -140,3 +147,7 @@ $$
 \end{align}
 $$
 
+
+- 1.3 Sampling from the resulting model can be done by doing Self-normalized Importance Sampling resampling with the prior distribution $p(z)$ as proposal.
+
+- 1.4 Also with MCMC.
