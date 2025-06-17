@@ -38,7 +38,7 @@ where $\epsilon \sim \mathcal{N}(0, I)$ and we can get access to a lower bound o
 
   
 
-$$\mathcal{L}_{VAE} = \mathbb{E}_{p_{\phi}(x|z)} \left[ \log p_{\phi}(x|z) \right] - D_{KL}(q_{\phi}(z|x) || p(z))$$
+$$L_{VAE} = E_{p_{\phi}(x|z)} \left[ \log p_{\phi}(x|z) \right] - D_{KL}(q_{\phi}(z|x) || p(z))$$
 
   
 
@@ -57,13 +57,13 @@ where $E_{\theta}(x)$ is the energy function parameterised by a neural network, 
 
 We want to train this model to minimise the log-likelihood of the data under the EBM :
 
-$$\mathcal{L}_{EBM} = \sum_{i=1}^n \frac{1}{n} (- E_{\theta}(x_i) + \log p_{\phi}(x_i)) + \log \mathbb{E}_{p_{\phi}(\tilde{x})} \left[ e^{-E_{\theta}(\tilde{x})} \right]$$
+$$L_{EBM} = \sum_{i=1}^n \frac{1}{n} (- E_{\theta}(x_i) + \log p_{\phi}(x_i)) + \log E_{p_{\phi}(\tilde{x})} \left[ e^{-E_{\theta}(\tilde{x})} \right]$$
 
   
 
 Using Jensen's inequality, we can derive a lower bound for the log-likelihood:
 
-$$\mathcal{L}_{EBM} \geq \sum_{i=1}^n \frac{1}{n} (- E_{\theta}(x_i) + \log p_{\phi}(x_i)) + \mathbb{E}_{p_{\phi}(\tilde{x})} \left[ -E_{\theta}(\tilde{x}) \right]$$
+$$L_{EBM} \geq \sum_{i=1}^n \frac{1}{n} (- E_{\theta}(x_i) + \log p_{\phi}(x_i)) + E_{p_{\phi}(\tilde{x})} \left[ -E_{\theta}(\tilde{x}) \right]$$
 
   
 
@@ -71,7 +71,7 @@ One can obtain the gradient in $\theta$ (and make the $q_{\phi}$ disappear) as f
 
   
 
-$$\nabla_{\theta} \mathcal{L}_{EBM} = \sum_{i=1}^n \frac{1}{n} \left( -\nabla_{\theta} E_{\theta}(x_i)\right) + \mathbb{E}_{p_{\phi}(\tilde{x})} \left[ -\nabla_{\theta} E_{\theta}(\tilde{x}) \right].$$
+$$\nabla_{\theta} L_{EBM} = \sum_{i=1}^n \frac{1}{n} \left( -\nabla_{\theta} E_{\theta}(x_i)\right) + E_{p_{\phi}(\tilde{x})} \left[ -\nabla_{\theta} E_{\theta}(\tilde{x}) \right].$$
 
   
 
