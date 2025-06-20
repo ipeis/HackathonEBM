@@ -1,7 +1,5 @@
 import torch.nn as nn
 
-
-
 # ------------------ ConvDecoder ------------------
 class ConvDecoder(nn.Module):
     def __init__(

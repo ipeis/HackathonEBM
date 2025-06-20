@@ -22,8 +22,7 @@ model:
   K: 5
 
   likelihood:
-    _target_: src.likelihoods.GaussianLikelihood
-    var: 0.1
+    _target_: src.likelihoods.BernoulliLikelihood
 
   encoder:
     _target_: src.layers.ConvEncoder
@@ -54,9 +53,8 @@ data:
     _target_: torchvision.transforms.Compose
     transforms:
       - _target_: torchvision.transforms.ToTensor
-      - _target_: torchvision.transforms.Normalize
-        mean: [0.5]
-        std: [0.5]
+      - _target_: src.data.transforms.Binarize
+
 # Specific split params
 train_data:
     train: True
