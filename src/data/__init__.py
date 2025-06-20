@@ -1,0 +1,1 @@
+from src.data.my_mnist import MyMNIST

@@ -1,0 +1,23 @@
+log_dir: logs/
+
+train:
+  batch_size: 32
+  epochs: 1000
+  lr: 0.001
+
+model:
+  pretrained_ckpt: /Users/ipeaz/Documents/GitHub/HackathonEBM/logs/EBM_Hackathon/7ptt5c4b/checkpoints/epoch=138-step=129965.ckpt
+  input_dim: 784
+  hidden_dims: [128,128]
+
+data:
+  name: 'mnist'
+
+callbacks:
+  image_correct_samples: 
+    num_samples: 16
+    every_n_epochs: 1
+  image_correct_reconstruction:
+    num_images: 8
+    every_n_epochs: 1  
+
