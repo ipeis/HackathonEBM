@@ -19,23 +19,26 @@ model:
   input_size: [28,28]
   input_dim: 1
   num_samples: 10
-  lambda_grad: 0.1
+  lambda_grad: 1e-3
+  lambda_energy: 1e-3
 
   energy_net:
     _target_: src.layers.MLP
     input_dim: 784
     hidden_dims: [512, 512]
     output_dim: 1
-    batch_norm: False
+    activation: "leaky_relu"
+    norm: "layer_norm"
   
   sampler:
     _target_: src.samplers.SGLD
-    step_size: 5e-5
-    n_iter: 50
-    noise_std: 5e-3
+    step_size: 1e-5
+    n_iter: 100
+    noise_std: 1e-3
     clamp_min: -1.0
     clamp_max: 1.0
     tau: 5e-3
+
 
 # Shared data params
 data:

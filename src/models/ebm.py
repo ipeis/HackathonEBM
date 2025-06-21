@@ -40,17 +40,22 @@ class EBM(pl.LightningModule):
         energy_sampled = self.energy_net(x_sampled)[:,0]
         loss = (energy_real - energy_sampled)
 
+        # Gradient penalty
         if self.training:
             grad = torch.autograd.grad(energy_real.sum(), x_real, create_graph=True)[0]
             loss_grad = (grad ** 2).sum(dim=tuple(range(1, grad.ndim)))
             loss += self.hparams.model.lambda_grad * loss_grad
 
+        # Energy regularization
+        loss_energy = (energy_real ** 2 + energy_sampled ** 2)
+        loss += self.hparams.model.lambda_energy * loss_energy
+        
         if return_losses:
             loss_dict = {
                 'energy_real': energy_real.mean(),
                 'energy_sampled': energy_sampled.mean(),
-                'energy_loss': (energy_real - energy_sampled).mean(),
-            }
+                'loss_energy': loss_energy.mean(),
+                }
             if self.training:
                 loss_dict['grad_loss'] = loss_grad.mean()
             return loss, loss_dict
@@ -97,7 +102,7 @@ class EBM(pl.LightningModule):
         loss, loss_dict = self.forward(x, mask, return_losses=True)
         self.log('val/loss', loss.mean(), on_step=False, on_epoch=True, prog_bar=True)
         loss_dict = {f'val/{k}': v for k, v in loss_dict.items()}
-        self.log_dict(loss_dict, on_step=False, on_epoch=True, prog_bar=True)
+        self.log_dict(loss_dict, on_step=False, on_epoch=True, prog_bar=False)
         return loss.mean()
     
     def configure_optimizers(self):
