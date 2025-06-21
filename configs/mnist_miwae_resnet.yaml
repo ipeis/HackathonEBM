@@ -4,47 +4,46 @@ _recursive_: false
 
 train:
   batch_size: 128
-  epochs: 300
+  epochs: 3000
   accelerator: "cuda"
   devices: 1
   precision: 16
   strategy: "auto"
   optimizer:
     _target_: torch.optim.Adam
-    lr: 0.001
+    lr: 2e-4
     weight_decay: 0.
     betas: [0.9, 0.999]
 
 model:  
-  input_size: [28,28]
+  input_size: [28, 28]
   input_dim: 1
-  latent_dim: [64]
+  latent_dim: [32, 7, 7]
   K: 5
 
   likelihood:
     _target_: src.likelihoods.BernoulliLikelihood
 
   encoder:
-    _target_: src.layers.ConvEncoder
-    input_channels: ${model.input_dim}
-    input_size: ${model.input_size}
-    latent_dim: 64
-    hidden_channels: [64, 64, 128]
-    kernel_sizes: [4, 4, 4]
-    strides: [2, 2, 1]
-    paddings: [1, 1, 0]
-    batch_norm: True
-      
+    _target_: src.layers.ResNetEncoder
+    in_channels: ${model.input_dim}
+    resolution: ${model.input_size}
+    ch: 32
+    ch_mult: [1, 2, 2]
+    num_res_blocks: 2
+    attn_resolutions: []
+    z_channels: 32
+
   decoder:
-    _target_: src.layers.ConvDecoder
-    latent_dim: ${model.encoder.latent_dim}
-    output_channels: ${model.input_dim}
-    output_size: ${model.input_size}
-    hidden_channels: ${reverse:${model.encoder.hidden_channels}}
-    kernel_sizes: ${reverse:${model.encoder.kernel_sizes}}
-    strides: ${reverse:${model.encoder.strides}}
-    paddings: ${reverse:${model.encoder.paddings}}
-    batch_norm: True
+    _target_: src.layers.ResNetDecoder
+    z_channels: ${model.encoder.z_channels}
+    ch: ${model.encoder.ch}
+    ch_mult: ${model.encoder.ch_mult}
+    num_res_blocks: ${model.encoder.num_res_blocks}
+    attn_resolutions: ${model.encoder.attn_resolutions}
+    out_ch: ${model.input_dim}
+    resolution: ${model.input_size}
+
 
 # Shared data params
 data:

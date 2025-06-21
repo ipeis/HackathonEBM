@@ -1,2 +1,3 @@
-from src.layers.conv_encoder import ConvEncoder
-from src.layers.conv_decoder import ConvDecoder
+from src.layers.conv import *
+from src.layers.resnet import *
+from src.layers.mlp import *

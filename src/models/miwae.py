@@ -3,44 +3,21 @@ import pytorch_lightning as pl
 import torch.distributions as td
 from hydra.utils import instantiate
 from src.utils import reparam
+from src.models.vae import VAE
 
-class MIWAE(pl.LightningModule):
+class MIWAE(VAE):
     """
     Missing data Importance Weighted Autoencoder (MIWAE)
     Reference: Mattei & Frellsen, 2019 (https://arxiv.org/abs/1902.10661)
     """
     def __init__(self, model, **kwargs):
-        super(MIWAE, self).__init__()
+        super(MIWAE, self).__init__(model, **kwargs)
 
-        self.likelihood = instantiate(model.likelihood)
-        self.encoder = instantiate(model.encoder)
-        self.decoder = instantiate(model.decoder)
-
-        kwargs['model'] = model
-        
-        self.save_hyperparameters(kwargs)
-
-    def encode(self, x):
-        mean, logvar = self.encoder(x)
-        return mean, logvar
-
-    def decode(self, z):
-        # z: [batch, K, latent_dim]
-        batch, K, latent_dim = z.size()
-        input_size = self.hparams.model.input_size
-        input_dim = self.hparams.model.input_dim
-
-        z_flat = z.view(-1, latent_dim)
-        x_recon = self.decoder(z_flat)
-        return x_recon.view(batch, K, input_dim, *input_size)
-
-    def forward(self, x, mask):
-        return -self.elbo(x, mask).mean()
-
-    def elbo(self, x, mask, K=None):
+    def elbo(self, x, mask, K=None, return_losses=False):
         """
         x: [batch, input_dim]
         mask: [batch, input_dim] binary mask (1=observed, 0=missing)
+        K: Number of importance samples (default: self.hparams.model.K)
         """
         if K==None:
             K = self.hparams.model.K
@@ -70,11 +47,15 @@ class MIWAE(pl.LightningModule):
 
         # MIWAE ELBO
         elbo = torch.logsumexp(log_px + log_pz - log_qz, dim=1) - torch.log(torch.tensor(K, device=x.device, dtype=x.dtype))
-        return elbo
+        loss = -elbo
+        if return_losses:
+            loss_dict = {
+                'elbo': elbo.mean(),
+                'loss': loss.mean() 
+            }
+            return loss, loss_dict
+        return loss
 
-    def log_prob(self, x, mask, K=None):
-        return self.elbo(x, mask, K)
-    
     def reconstruct(self, x, mask, K=None):
         """
         x: [batch, input_dim] 
@@ -84,7 +65,7 @@ class MIWAE(pl.LightningModule):
             K = self.hparams.model.K
         with torch.no_grad():
             mean, logvar = self.encode(x)
-            z = reparam(mean, logvar, K)  # [batch, K, latent_dim]
+            z = reparam(mean, logvar, K, unsqueeze=True)  # [batch, K, latent_dim]
             
             # Decode
             x_recon = self.decode(z)  # [batch, K, input_dim]
@@ -103,39 +84,3 @@ class MIWAE(pl.LightningModule):
             x_recon = x_recon.sum(dim=1)  # Weighted sum over K
 
         return x_recon
-
-    def sample(self, num_samples, device=None):
-        """
-        Generate samples from the model's prior.
-        Returns: [num_samples, *input_dim]
-        """
-        device = device or next(self.parameters()).device
-        z = torch.randn(num_samples, self.hparams.model.latent_dim, device=device)
-        x_samples = self.decoder(z)
-        return x_samples        
-
-    def impute(self, x, mask, K=None):
-        """
-        Impute missing values in x using the trained model.
-        """
-        with torch.no_grad():
-            x_recon = self.reconstruct(x, mask, K=K)
-            x_out = x.clone()
-            x_out[mask == 0] = x_recon[mask == 0]
-        return x_out
-    
-    def training_step(self, batch, batch_idx):
-        x, mask = batch
-        loss = self.forward(x, mask)
-        self.log('train/loss', loss, on_step=True, on_epoch=False, prog_bar=True)
-        return loss
-        
-    def validation_step(self, batch, batch_idx):
-        x, mask = batch
-        loss = self.forward(x, mask)
-        self.log('val/loss', loss, on_step=False, on_epoch=True, prog_bar=True)
-        return loss
-    
-    def configure_optimizers(self):
-        optimizer = instantiate(self.hparams.train.optimizer, params=self.parameters())
-        return optimizer

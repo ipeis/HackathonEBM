@@ -59,6 +59,7 @@ def main():
         precision="16-mixed" if torch.cuda.is_available() else 32,
         default_root_dir=config.log_dir,
         callbacks=callbacks,   
+        gradient_clip_val=config.train.gradient_clip_val
     )
 
     trainer.fit(model, *loaders)

@@ -1,5 +1,5 @@
 
-_target_: src.models.MIWAE
+_target_: src.models.VAE
 _recursive_: false  
 
 train:
