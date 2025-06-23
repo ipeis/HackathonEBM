@@ -1,2 +1,0 @@
-train:
-  gradient_clip_val: 1.0

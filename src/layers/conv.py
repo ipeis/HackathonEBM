@@ -1,6 +1,7 @@
 import torch.nn as nn
 import torch.nn.functional as F
 from functools import reduce
+from src.layers.acts import activations
 
 class ConvEncoder(nn.Module):
     def __init__(
@@ -12,7 +13,9 @@ class ConvEncoder(nn.Module):
         strides,
         paddings,
         latent_dim,
-        batch_norm=True
+        batch_norm=True,
+        activation='relu',
+        probabilistic=True
     ):
         """
         CNN Encoder for VAE.
@@ -33,6 +36,7 @@ class ConvEncoder(nn.Module):
 
         self.input_size = input_size
         self.latent_dim = latent_dim
+        activation = activations[activation]
 
         layers = []
         in_channels = input_channels
@@ -40,7 +44,7 @@ class ConvEncoder(nn.Module):
 
         for out_channels, k, s, p in zip(hidden_channels, kernel_sizes, strides, paddings):
             layers.append(nn.Conv2d(in_channels, out_channels, kernel_size=k, stride=s, padding=p))
-            layers.append(nn.ReLU())
+            layers.append(activation())
             if batch_norm:
                 layers.append(nn.BatchNorm2d(out_channels))
             in_channels = out_channels
@@ -54,13 +58,16 @@ class ConvEncoder(nn.Module):
         flattened_size = in_channels * h * w
 
         self.fc_mean = nn.Linear(flattened_size, latent_dim)
-        self.fc_logvar = nn.Linear(flattened_size, latent_dim)
+        if probabilistic:
+            self.fc_logvar = nn.Linear(flattened_size, latent_dim)
 
     def forward(self, x):
         h = self.flatten(self.conv(x))
         mu = self.fc_mean(h)
-        logvar = self.fc_logvar(h)
-        return mu, logvar
+        if hasattr(self, 'fc_logvar'):
+            logvar = self.fc_logvar(h)
+            return mu, logvar
+        return mu
     
 
 
@@ -74,7 +81,8 @@ class ConvDecoder(nn.Module):
         strides,
         paddings,
         latent_dim,
-        batch_norm=True
+        batch_norm=True,
+        activation='relu'
     ):
         """
         CNN Decoder for VAE.
@@ -94,6 +102,7 @@ class ConvDecoder(nn.Module):
 
         self.output_size = output_size
         self.latent_dim = latent_dim
+        activation = activations[activation]
 
         # Compute initial feature map size using data -> latent flow
         h, w = output_size
@@ -114,7 +123,7 @@ class ConvDecoder(nn.Module):
         in_channels = hidden_channels[0]
         for out_channels, k, s, p in zip(hidden_channels[:-1], kernel_sizes[:-1], strides[:-1], paddings[:-1]):
             layers.append(nn.ConvTranspose2d(in_channels, out_channels, kernel_size=k, stride=s, padding=p))
-            layers.append(nn.ReLU())
+            layers.append(activation())
             if batch_norm:
                 layers.append(nn.BatchNorm2d(out_channels))
             in_channels = out_channels

@@ -12,6 +12,8 @@ import os
 from hydra.utils import instantiate
 from src.utils import *
 
+
+
 def main():
     parser = argparse.ArgumentParser(description="Train a model")
     parser.add_argument('--config', type=str, required=True, help='Path to config file')
@@ -56,7 +58,7 @@ def main():
         accelerator=config.train.accelerator,
         devices=config.train.devices if torch.cuda.is_available() else None,
         strategy=config.train.strategy,
-        precision="16-mixed" if torch.cuda.is_available() else 32,
+        precision="16-mixed" if torch.cuda.is_available() and config.train.precision == "16" else 32,
         default_root_dir=config.log_dir,
         callbacks=callbacks,   
         gradient_clip_val=config.train.gradient_clip_val

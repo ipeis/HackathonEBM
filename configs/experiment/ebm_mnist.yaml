@@ -1,0 +1,12 @@
+defaults:
+  - train: train
+  - model: ebm
+  - data: mnist
+  - callbacks:
+      - image_samples
+      - buffer_samples
+      - lr_monitor
+  - optimizer: adam
+  - scheduler: steplr
+
+# You can override or add top-level stuff here if needed

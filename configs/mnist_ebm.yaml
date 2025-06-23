@@ -7,70 +7,96 @@ train:
   epochs: 300
   accelerator: "cuda"
   devices: 1
-  precision: 16
+  precision:  16
   strategy: "auto"
+  gradient_clip_val: 0.1
   optimizer:
     _target_: torch.optim.Adam
-    lr: 0.001
+    lr: 1e-4
     weight_decay: 0.
-    betas: [0.9, 0.999]
+    betas: [0., 0.999]
+  scheduler:
+    _target_: torch.optim.lr_scheduler.StepLR
+    step_size: 1
+    gamma: 0.97
 
 model:  
   input_size: [28,28]
   input_dim: 1
-  num_samples: 10
-  lambda_grad: 1e-3
-  lambda_energy: 1e-3
+  lambda_reg: 1e-1
+  buffer_size: 8192
+
 
   energy_net:
-    _target_: src.layers.MLP
-    input_dim: 784
-    hidden_dims: [512, 512]
-    output_dim: 1
-    activation: "leaky_relu"
-    norm: "layer_norm"
-  
+    _target_: src.layers.ConvEncoder
+    input_channels: ${model.input_dim}
+    input_size: ${model.input_size}
+    latent_dim: 1
+    hidden_channels: [32, 64, 128, 128]
+    kernel_sizes: [5, 3, 3, 3]
+    strides: [2, 2, 2, 2]
+    paddings: [4, 1, 1, 1]
+    batch_norm: False
+    activation: "swish"
+    probabilistic: False
+
   sampler:
     _target_: src.samplers.SGLD
-    step_size: 1e-5
-    n_iter: 100
-    noise_std: 1e-3
-    clamp_min: -1.0
-    clamp_max: 1.0
-    tau: 5e-3
+    img_shape: [1,28,28]
+    sample_size: ${train.batch_size}
+    steps: 60
+    step_size: 4
+    noise_std: 0.005
 
 
-# Shared data params
 data:
-  _target_: src.data.MyMNIST
-  root: "mnist/"
-  download: True
-  transform:
-    _target_: torchvision.transforms.Compose
-    transforms:
-      - _target_: torchvision.transforms.ToTensor
-      - _target_: torchvision.transforms.Normalize
-        mean: [0.5]
-        std: [0.5]
-      
-# Specific split params
-train_data:
-    train: True
-val_data:
-    train: False
 
-dataloader:
-  _target_: torch.utils.data.DataLoader
-  batch_size: ${train.batch_size}
-  num_workers: 4
-  pin_memory: True
+  size: [28, 28]
+  dim: 1
+  root: "mnist/"
+
+  # Shared dataset class params
+  dataset:
+    _target_: src.data.MyMNIST
+    root: "${data.root}"
+    download: True
+    transform:
+      _target_: torchvision.transforms.Compose
+      transforms:
+        - _target_: torchvision.transforms.ToTensor
+        - _target_: torchvision.transforms.Normalize
+          mean: [0.5]
+          std: [0.5]
+      
+  # Specific split params
+  train_dataset:
+      train: True
+  val_dataset:
+      train: False
+
+  dataloader:
+    _target_: torch.utils.data.DataLoader
+    batch_size: ${train.batch_size}
+    num_workers: 4
+    pin_memory: True
 
 
 callbacks:
   image_samples: 
     _target_: src.callbacks.ImageSamples
     num_samples: 64
+    steps: 256
     every_n_epochs: 1
+  
+  buffer_samples: 
+    _target_: src.callbacks.BufferSamples
+    num_samples: 64
+    every_n_epochs: 1
+
+  lr_monitor:
+    _target_: pytorch_lightning.callbacks.LearningRateMonitor
+    logging_interval: "epoch"
+  
 
 
 

@@ -1,5 +1,10 @@
 import torch.nn as nn
+import torch
 
+class Swish(nn.Module):
+    def forward(self, x):
+        return x * torch.sigmoid(x)
+    
 activations = {
     'relu': nn.ReLU,
     'leaky_relu': nn.LeakyReLU,
@@ -11,6 +16,9 @@ activations = {
     'selu': nn.SELU,
     'prelu': nn.PReLU,
     'gelu': nn.GELU,
-    'swish': lambda: nn.SiLU(),  # Swish is often implemented as SiLU in PyTorch
+    'swish': Swish,  # Swish is often implemented as SiLU in PyTorch
 }
 
+
+
+    
