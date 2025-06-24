@@ -1,5 +1,6 @@
 import torch
-from omegaconf import OmegaConf
+from omegaconf import OmegaConf, DictConfig, ListConfig
+
 
 # This allows to reverse a list in the config
 OmegaConf.register_new_resolver("reverse", lambda x: list(reversed(x)))
@@ -22,5 +23,7 @@ def reparam(mu, logvar, n_samples=1, unsqueeze=False):
     std = torch.exp(0.5 * logvar)
     eps = torch.randn_like(std)
     return mu + eps * std
+
+
 
 

@@ -9,32 +9,22 @@ from src.data.utils import get_data_loaders
 from src.callbacks import get_callbacks
 
 import os
+import hydra
 from hydra.utils import instantiate
 from src.utils import *
 
 
-
-def main():
-    parser = argparse.ArgumentParser(description="Train a model")
-    parser.add_argument('--config', type=str, required=True, help='Path to config file')
-    args = parser.parse_args()
-
-    # Load config
-    default_config = omegaconf.OmegaConf.load("configs/default.yaml")
-    config = omegaconf.OmegaConf.load(args.config)
-    config = omegaconf.OmegaConf.merge(default_config, config)
+@hydra.main(version_base=None, config_path="configs")
+def main(config: omegaconf.DictConfig):
 
     # Logs and data directories
-    if 'LOGDIR' not in os.environ:
-        log_dir = 'logs/'
-        config.data.root = os.path.join('data/', config.data.root)
-    else:
+    if 'LOGDIR' in os.environ:
         log_dir = os.environ['LOGDIR']
         config.data.root = os.path.join(log_dir, 'data', config.data.root)
-        config.log_dir = os.path.join(log_dir, 'logs', 'EBM_Hackathon')
+        config.train.log_dir = os.path.join(log_dir, 'logs', 'EBM_Hackathon')
     
     # Model
-    model = instantiate(config)
+    model = instantiate(config.model, **config)
 
     # Data loaders
     loaders = get_data_loaders(config)  #[train_loader, val_loader, ?test_loader]
@@ -43,7 +33,7 @@ def main():
     wandb_logger = pl.loggers.WandbLogger(
         project='EBM_Hackathon', 
         config=omegaconf.OmegaConf.to_container(config, resolve=True),
-        save_dir=config.log_dir)
+        save_dir=config.train.log_dir)
 
     # Callbacks
     callbacks = get_callbacks(config, loaders)
@@ -59,7 +49,7 @@ def main():
         devices=config.train.devices if torch.cuda.is_available() else None,
         strategy=config.train.strategy,
         precision="16-mixed" if torch.cuda.is_available() and config.train.precision == "16" else 32,
-        default_root_dir=config.log_dir,
+        default_root_dir=config.train.log_dir,
         callbacks=callbacks,   
         gradient_clip_val=config.train.gradient_clip_val
     )

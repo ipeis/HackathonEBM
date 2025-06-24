@@ -1,5 +1,5 @@
 # General info
-size: [28, 28]
+shape: [28, 28]
 dim: 1
 root: "mnist/"
 
@@ -18,9 +18,9 @@ dataset:
     
 # Specific split params
 train_dataset:
-    train: True
+  train: True
 val_dataset:
-    train: False
+  train: False
 
 dataloader:
   _target_: torch.utils.data.DataLoader

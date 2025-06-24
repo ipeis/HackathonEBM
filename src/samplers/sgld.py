@@ -4,7 +4,8 @@ import numpy as np
 
 class SGLD(torch.nn.Module):
     def __init__(self, 
-                 img_shape, 
+                 input_dim,
+                 input_shape, 
                  sample_size, 
                  steps, 
                  step_size, 
@@ -22,7 +23,8 @@ class SGLD(torch.nn.Module):
             max_len - Maximum number of data points to keep in the buffer
         """
         super().__init__()
-        self.img_shape = img_shape
+        self.input_dim = input_dim
+        self.img_shape = list(input_shape)
         self.sample_size = sample_size
         self.steps = steps
         self.step_size = step_size 
@@ -43,7 +45,7 @@ class SGLD(torch.nn.Module):
             num_samples = self.sample_size
         if init==None:
             # If no initial images are provided, generate random noise
-            init = torch.rand(num_samples, *self.img_shape) * 2 - 1
+            init = torch.rand(num_samples, self.input_dim, *self.input_shape) * 2 - 1
         if steps is None:
             steps = self.steps
 

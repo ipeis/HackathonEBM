@@ -16,7 +16,7 @@ class EBM(pl.LightningModule):
         self.energy_net = instantiate(model.energy_net)
         self.sampler = instantiate(model.sampler, log_prob=self.u_log_prob)
 
-        self.register_buffer("buffer", torch.randn(*[model.buffer_size, model.input_dim, *model.input_size]))
+        self.register_buffer("buffer", torch.randn([model.buffer_size, kwargs['data'].dim, *list(kwargs['data'].shape)]))
 
         kwargs['model'] = model
         self.save_hyperparameters(kwargs)
@@ -27,7 +27,7 @@ class EBM(pl.LightningModule):
             # Buffer sampling
             init = self.get_buffer(x.shape[0])
         else:
-            init = torch.rand(x.shape[0], self.hparams.model.input_dim, *self.hparams.model.input_size, device=self.device) * 2 - 1
+            init = torch.rand(x.shape[0], self.hparams.data.dim, *self.hparams.data.shape, device=self.device) * 2 - 1
 
         x_sampled = self.sample(num_samples=x.shape[0], init=init)
         self.update_buffer(x_sampled.detach())
@@ -94,7 +94,7 @@ class EBM(pl.LightningModule):
             num_samples = self.hparams.train.batch_size
         # Choose 95% of the batch from the buffer, 5% generate from scratch
         n_new = np.random.binomial(num_samples, 0.05)
-        rand_imgs = torch.rand(n_new, self.hparams.model.input_dim, *self.hparams.model.input_size, device=self.device) * 2 - 1
+        rand_imgs = torch.rand(n_new, self.hparams.data.dim, *self.hparams.data.shape, device=self.device) * 2 - 1
         old_imgs = torch.stack(random.choices(self.buffer, k=num_samples-n_new), dim=0)
         init = torch.cat([rand_imgs, old_imgs], dim=0).detach()
         return init
@@ -122,7 +122,7 @@ class EBM(pl.LightningModule):
         if num_samples is None:
             num_samples = self.hparams.train.batch_size
         if init is None:
-            init = torch.rand(num_samples, self.hparams.model.input_dim, *self.hparams.model.input_size, device=self.device) * 2 - 1
+            init = torch.rand(num_samples, self.hparams.data.dim, *self.hparams.data.shape, device=self.device) * 2 - 1
         
         # Before MCMC: set model parameters to "required_grad=False"
         # because we are only interested in the gradients of the input. 
